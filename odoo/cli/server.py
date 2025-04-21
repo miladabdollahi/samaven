@@ -11,7 +11,7 @@ GNU Public Licence.
 """
 
 import atexit
-import csv # pylint: disable=deprecated-module
+import csv  # pylint: disable=deprecated-module
 import logging
 import os
 import re
@@ -32,12 +32,14 @@ _logger = logging.getLogger('odoo')
 
 re._MAXCACHE = 4096  # default is 512, a little too small for odoo
 
+
 def check_root_user():
     """Warn if the process's user is 'root' (on POSIX system)."""
     if os.name == 'posix':
         import getpass
         if getpass.getuser() == 'root':
             sys.stderr.write("Running as user 'root' is a security risk.\n")
+
 
 def check_postgres_user():
     """ Exit if the configured database user is 'postgres'.
@@ -48,6 +50,7 @@ def check_postgres_user():
     if (config['db_user'] or os.environ.get('PGUSER')) == 'postgres':
         sys.stderr.write("Using the database user 'postgres' is a security risk, aborting.")
         sys.exit(1)
+
 
 def report_configuration():
     """ Log the server version and some configuration values.
@@ -73,9 +76,10 @@ def report_configuration():
         _logger.info('replica database: %s@%s:%s', user, replica_host or 'default', replica_port or 'default')
     if sys.version_info[:2] > odoo.MAX_PY_VERSION:
         _logger.warning("Python %s is not officially supported, please use Python %s instead",
-            '.'.join(map(str, sys.version_info[:2])),
-            '.'.join(map(str, odoo.MAX_PY_VERSION))
-        )
+                        '.'.join(map(str, sys.version_info[:2])),
+                        '.'.join(map(str, odoo.MAX_PY_VERSION))
+                        )
+
 
 def rm_pid_file(main_pid):
     config = odoo.tools.config
@@ -84,6 +88,7 @@ def rm_pid_file(main_pid):
             os.unlink(config['pidfile'])
         except OSError:
             pass
+
 
 def setup_pid_file():
     """ Create a file with the process id written in it.
@@ -97,6 +102,7 @@ def setup_pid_file():
             fd.write(str(pid))
         atexit.register(rm_pid_file, pid)
 
+
 def export_translation():
     config = odoo.tools.config
     dbname = config['db_name']
@@ -106,7 +112,7 @@ def export_translation():
     else:
         msg = "new language"
     _logger.info('writing translation file for %s to %s', msg,
-        config["translate_out"])
+                 config["translate_out"])
 
     fileformat = os.path.splitext(config["translate_out"])[-1][1:].lower()
     # .pot is the same fileformat as .po
@@ -117,9 +123,10 @@ def export_translation():
         registry = odoo.modules.registry.Registry.new(dbname)
         with registry.cursor() as cr:
             odoo.tools.translate.trans_export(config["language"],
-                config["translate_modules"] or ["all"], buf, fileformat, cr)
+                                              config["translate_modules"] or ["all"], buf, fileformat, cr)
 
     _logger.info('translation file written successfully')
+
 
 def import_translation():
     config = odoo.tools.config
@@ -132,10 +139,14 @@ def import_translation():
         translation_importer.load_file(config["translate_in"], config["language"])
         translation_importer.save(overwrite=overwrite)
 
+
 def main(args):
     check_root_user()
     odoo.tools.config.parse_config(args, setup_logging=True)
-    check_postgres_user()
+
+    if os.environ.get('ODOO_CHECK_POSTGRES_USER') == 'True':
+        check_postgres_user()
+
     report_configuration()
 
     config = odoo.tools.config
@@ -175,8 +186,10 @@ def main(args):
     rc = odoo.service.server.start(preload=preload, stop=stop)
     sys.exit(rc)
 
+
 class Server(Command):
     """Start the odoo server (default command)"""
+
     def run(self, args):
         odoo.tools.config.parser.prog = f'{Path(sys.argv[0]).name} {self.name}'
         main(args)
