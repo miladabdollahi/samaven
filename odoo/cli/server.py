@@ -144,7 +144,7 @@ def main(args):
     check_root_user()
     odoo.tools.config.parse_config(args, setup_logging=True)
 
-    if os.environ.get('ODOO_CHECK_POSTGRES_USER') == 'True':
+    if os.environ.get('ODOO_CHECK_POSTGRES_USER', 'True') == 'True':
         check_postgres_user()
 
     report_configuration()
@@ -157,18 +157,19 @@ def main(args):
     csv.field_size_limit(500 * 1024 * 1024)
 
     preload = []
-    if config['db_name']:
-        preload = config['db_name'].split(',')
-        for db_name in preload:
+    db_name = config['db_name'] or os.environ.get('ODOO_DB_NAME')
+    if db_name:
+        preload = db_name.split(',')
+        for name in preload:
             try:
-                odoo.service.db._create_empty_database(db_name)
+                odoo.service.db._create_empty_database(name)
                 config['init']['base'] = True
             except InsufficientPrivilege as err:
                 # We use an INFO loglevel on purpose in order to avoid
                 # reporting unnecessary warnings on build environment
                 # using restricted database access.
                 _logger.info("Could not determine if database %s exists, "
-                             "skipping auto-creation: %s", db_name, err)
+                             "skipping auto-creation: %s", name, err)
             except odoo.service.db.DatabaseExists:
                 pass
 
